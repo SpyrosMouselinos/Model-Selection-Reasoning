@@ -1,4 +1,5 @@
 import json
+import os.path
 import re
 import regex
 import func_timeout
@@ -15,14 +16,27 @@ def jsonlines_dump(fname: str, data: Union[dict, list]):
     try:
         with open(fname, 'a+') as f:
             if isinstance(data, dict):
-                f.write(json.dumps(data)+'\n')
+                f.write(json.dumps(data) + '\n')
             elif isinstance(data, list):
                 for d in data:
-                    f.write(json.dumps(d)+'\n')
+                    f.write(json.dumps(d) + '\n')
 
     except (FileNotFoundError, FileExistsError) as e:
         print(f'Error: {e}')
         print(f'Could not write to {fname}')
+
+
+def jsonfolder_load(foname: str):
+    if os.path.isdir(foname):
+        json_files_in_folder = os.listdir(foname)
+        loader = []
+        for file_ in json_files_in_folder:
+            with open(foname + '/' + file_, 'r') as f:
+                content = json.load(f)
+            loader.append(content)
+    else:
+        raise FileNotFoundError(f"Folder {foname} was not found!")
+    return loader
 
 
 def extract_num_codex(solution: str):
@@ -66,6 +80,7 @@ def safe_execute_codex(code_string: str, keys=None):
 
         except Exception:
             return None
+
     try:
         ans = func_timeout.func_timeout(3, execute, args=(code_string,))
         ans = float(ans) if ans is not None else ans
@@ -104,8 +119,8 @@ def safe_execute_turbo(code_string: str, keys=None):
                 return solution()
             else:
                 executed_code = 'import math\n' + 'import datetime\n' + \
-                    '\n'.join([xx[4:]
-                                for xx in x.strip().split('\n')[1:-1]])
+                                '\n'.join([xx[4:]
+                                           for xx in x.strip().split('\n')[1:-1]])
                 exec(executed_code)
                 locals_ = locals()
                 return locals_.get(code_return, None)
@@ -125,7 +140,7 @@ def safe_execute_turbo(code_string: str, keys=None):
         for i in range(len(code_list)):
             if code_list[i].strip() == 'def solution():':
                 new_code_list.append(code_list[i])
-                for j in range(i+1, len(code_list)):
+                for j in range(i + 1, len(code_list)):
                     if code_list[j].startswith('    '):
                         new_code_list.append(code_list[j])
                     if 'return ' in code_list[j]:
@@ -170,6 +185,24 @@ def extract_choice_turbo(selection: str):
                 choices_a_b = '(B)'
 
     return choices_a_b
+
+
+def extract_validity_turbo(solution: str, keys=None):
+    try:
+        ans_line_pre = solution.strip().split('Here it is again:')[0]
+        ans_line_post = solution.strip().split('Here it is again:')[1][1:]
+    except:
+        return False, '', ''
+    if 'mistake' in ans_line_pre or 'correction' in ans_line_pre:
+        if 'def' in solution:
+            return False, ans_line_post, safe_execute_turbo(solution, keys)
+        else:
+            return False, ans_line_post, extract_num_turbo(solution)
+    else:
+        if 'def' in solution:
+            return True, ans_line_post, safe_execute_turbo(solution, keys)
+        else:
+            return True, ans_line_post, extract_num_turbo(solution)
 
 
 def extract_choice_codex(selection: str):
@@ -222,9 +255,9 @@ def execute_date_pal(code_string: str, keys=None):
                 return solution()
             else:
                 executed_code = 'import math\n' + 'import datetime\n' + 'from datetime import datetime\n' + 'from dateutil.relativedelta import relativedelta as relativedelta\n' + \
-                    'from dateutil.relativedelta import relativedelta as timedelta\n' + \
-                    'import pytz\n' + \
-                    '\n'.join([xx[4:] for xx in x.strip().split('\n')[1:-1]])
+                                'from dateutil.relativedelta import relativedelta as timedelta\n' + \
+                                'import pytz\n' + \
+                                '\n'.join([xx[4:] for xx in x.strip().split('\n')[1:-1]])
                 exec(executed_code)
                 locals_ = locals()
                 return locals_.get(code_return, None)
@@ -244,7 +277,7 @@ def execute_date_pal(code_string: str, keys=None):
         for i in range(len(code_list)):
             if code_list[i].strip() == 'def solution():':
                 new_code_list.append(code_list[i])
-                for j in range(i+1, len(code_list)):
+                for j in range(i + 1, len(code_list)):
                     if code_list[j].startswith('    '):
                         new_code_list.append(code_list[j])
                     if 'return ' in code_list[j]:
@@ -258,3 +291,14 @@ def execute_date_pal(code_string: str, keys=None):
         ans = None
 
     return ans
+
+
+def extract_geom(ans_string: str):
+    pattern = r'\\boxed{((?:[^{}]|{[^{}]*})+)}'
+    answer_match = re.search(pattern, ans_string)
+    if answer_match:
+        # Extract just the content inside \boxed{}
+        answer = answer_match.group(1)
+    else:
+        answer = ''
+    return answer

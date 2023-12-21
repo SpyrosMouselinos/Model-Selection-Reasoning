@@ -47,7 +47,6 @@ Q: Olivia has $23. She bought five bagels for $3 each. How much money does she h
 Answer: Olivia had 23 dollars. 5 bagels for 3 dollars each will be 5 * 3 = 15 dollars. So she has 23 - 15 = 8 dollars left. The answer is 8.
 '''.strip() + '\n\n\n'
 
-
 CODEX_PAL_PROMPT = '''
 Q: Olivia has $23. She bought five bagels for $3 each. How much money does she have left?
 
@@ -191,7 +190,6 @@ def solution():
     result = trees_added
     return result
 '''.strip() + '\n\n\n\n'
-
 
 CODEX_SELECT_PROMPT = '''
 Math Problem: Olivia has $23. She bought five bagels for $3 each. How much money does she have left?
@@ -470,7 +468,6 @@ Therefore they had 74 - 35 = 39 chocolates left.
 So the answer is 39.
 '''.strip()
 
-
 TURBO_PAL_SYSTEM = 'You are a helpful assistant that generates Python code to answer arithmetic questions. '
 
 TURBO_PAL_USER = '''
@@ -515,7 +512,6 @@ Answer the following question in Python: If there are 3 cars in the parking lot 
 
 Answer the following question in Python: There are 15 trees in the grove. Grove workers will plant trees in the grove today. After they are done, there will be 21 trees. How many trees did the grove workers plant today?
 '''.strip()
-
 
 TURBO_PAL_ASSISTANT = '''
 def solution():
@@ -593,7 +589,6 @@ def solution():
     result = trees_added
     return result
 '''.strip()
-
 
 TURBO_SELECT_SYSTEM = '''You are a helpful assistant that can identify the correct answer to the math problem.'''
 
@@ -711,7 +706,6 @@ def solution():
 Which of the above two choices can correctly answer the math problem? 
 '''.strip()
 
-
 TURBO_SELECT_ASSISTANT = '''
 (B) can correctly answer the math problem. Because (A) adds 2 more balls after losing 2 more on Wednesday instead of subtracting them.
 
@@ -727,6 +721,559 @@ TURBO_SELECT_ASSISTANT = '''
 
 (A) can correctly answer the math problem. Because (B) subtracts the final number of trees from the initial number of trees instead of subtracting the initial number of trees from the final number of trees.
 '''.strip()
+
+# ========= Cross-Modal ============= #
+TURBO_A2P_SYSTEM = 'You are a helpful assistant that can solve math problems step by step and generate Python code to answer arithmetic questions. You will be provided with a solution written analytically step by step and you will need to convert it to a Python program.'
+
+TURBO_A2P_USER = '''
+Let's convert to Python the following math problems. Think step by step. Here is one example how to do it,
+
+Question: Olivia has $23. She bought five bagels for $3 each. How much money does she have left?
+
+Answer:
+Olivia had 23 dollars.
+And she bought 5 bagels.
+And each bagel costs 3 dollars.
+So she spent 5 * 3 = 15 dollars.
+So she has 23 - 15 = 8 dollars left.
+So the answer is 8.
+
+Python:
+def solution():
+    """Olivia has $23. She bought five bagels for $3 each. How much money does she have left?"""
+    money_initial = 23
+    bagels = 5
+    bagel_cost = 3
+    money_spent = bagels * bagel_cost
+    money_left = money_initial - money_spent
+    result = money_left
+    return result
+
+
+Now it's your turn. Here is another math problem:
+Question: Michael had 58 golf balls. On tuesday, he lost 23 golf balls. On wednesday, he lost 2 more. How many golf balls did he have at the end of wednesday?
+Answer:
+Michael started with 58 golf balls.
+And he lost 23 golf balls on tuesday.
+So after losing 23 on tuesday, he had 58 -23 = 35.
+And then he lost 2 more golf balls on wednesday.
+So after losing 2 more on wednesday, he had 35 - 2 = 33 golf balls.
+So the answer is 33.
+
+
+
+Question: There were nine computers in the server room. Five more computers were installed each day, from monday to thursday. How many computers are now in the server room?
+Answer:
+There were originally 9 computers.
+And 5 more computers were added from monday to thursday.
+There are 4 days between monday and thursday.
+So 5 * 4 = 20 computers were added in total.
+So there are 9 + 20 = 29 computers now.
+So the answer is 29.
+
+
+
+Question: Shawn has five toys. For Christmas, he got two toys each from his mom and dad. How many toys does he have now?
+Answer:
+Shawn started with 5 toys.
+And he got 2 toys each from his mom and dad.
+So he got 2 + 2 = 4 toys.
+Therefore, he has 5 + 4 = 9 toys now.
+So the answer is 9.
+
+
+
+Question: Jason had 20 lollipops. He gave Denny some lollipops. Now Jason has 12 lollipops. How many lollipops did Jason give to Denny?
+Answer:
+Jason started with 20 lollipops.
+Then he had 12 after giving some to Denny.
+So he gave Denny 20 - 12 = 8 lollipops.
+So the answer is 8.
+
+
+
+Question: There are 15 trees in the grove. Grove workers will plant trees in the grove today. After they are done, there will be 21 trees. How many trees did the grove workers plant today?
+Answer:
+There are 15 trees originally.
+And there were 21 trees after some more were planted.
+So 21 - 15 = 6 trees were planted.
+So the answer is 6.
+
+
+
+Question: If there are 3 cars in the parking lot and 2 more cars arrive, how many cars are in the parking lot?
+Answer:
+There are originally 3 cars.
+And 2 more cars arrive.
+So there are 3 + 2 = 5 cars now.
+So the answer is 5.
+
+
+
+Question: Leah had 32 chocolates and her sister had 10 more chocolates than her. If they ate 35, how many pieces do they have left in total?
+Answer:
+Originally, Leah had 32 chocolates.
+And her sister had 10 more chocolates than her.
+So her sister had 42 chocolates.
+So in total they had 32 + 42 = 74 chocolates.
+Then they ate 35 chocolates.
+Therefore they had 74 - 35 = 39 chocolates left.
+So the answer is 39.
+'''.strip()
+
+TURBO_A2P_ASSISTANT = '''
+Python:
+def solution():
+    """Michael had 58 golf balls. On tuesday, he lost 23 golf balls. On wednesday, he lost 2 more. How many golf balls did he have at the end of wednesday?"""
+    golf_balls_initial = 58
+    golf_balls_lost_tuesday = 23
+    golf_balls_lost_wednesday = 2
+    golf_balls_left = golf_balls_initial - golf_balls_lost_tuesday - golf_balls_lost_wednesday
+    result = golf_balls_left
+    return result
+
+
+
+Python:
+def solution():
+    """There were nine computers in the server room. Five more computers were installed each day, from monday to thursday. How many computers are now in the server room?"""
+    computers_initial = 9
+    computers_per_day = 5
+    num_days = 4  # 4 days between monday and thursday
+    computers_added = computers_per_day * num_days
+    computers_total = computers_initial + computers_added
+    result = computers_total
+    return result
+
+
+
+Python:
+def solution():
+    """Shawn has five toys. For Christmas, he got two toys each from his mom and dad. How many toys does he have now?"""
+    toys_initial = 5
+    mom_toys = 2
+    dad_toys = 2
+    total_received = mom_toys + dad_toys
+    total_toys = toys_initial + total_received
+    result = total_toys
+    return result
+
+
+
+Python:
+def solution():
+    """Jason had 20 lollipops. He gave Denny some lollipops. Now Jason has 12 lollipops. How many lollipops did Jason give to Denny?"""
+    jason_lollipops_initial = 20
+    jason_lollipops_after = 12
+    denny_lollipops = jason_lollipops_initial - jason_lollipops_after
+    result = denny_lollipops
+    return result
+
+
+
+Python:
+def solution():
+    """There are 15 trees in the grove. Grove workers will plant trees in the grove today. After they are done, there will be 21 trees. How many trees did the grove workers plant today?"""
+    trees_initial = 15
+    trees_after = 21
+    trees_added = trees_after - trees_initial
+    result = trees_added
+    return result
+
+
+
+Python:
+def solution():
+    """If there are 3 cars in the parking lot and 2 more cars arrive, how many cars are in the parking lot?"""
+    cars_initial = 3
+    cars_arrived = 2
+    total_cars = cars_initial + cars_arrived
+    result = total_cars
+    return result
+
+
+
+Python:
+def solution():
+    """Leah had 32 chocolates and her sister had 42. If they ate 35, how many pieces do they have left in total?"""
+    leah_chocolates = 32
+    sister_chocolates = 42
+    total_chocolates = leah_chocolates + sister_chocolates
+    chocolates_eaten = 35
+    chocolates_left = total_chocolates - chocolates_eaten
+    result = chocolates_left
+    return result
+'''.strip()
+
+TURBO_P2A_SYSTEM = 'You are a helpful assistant that can solve math problems step by step and generate Python code to answer arithmetic questions. You will be provided with a solution written in Python and you will need to convert it to an analytical solution step by step.'
+
+TURBO_P2A_USER = '''
+Let's convert to analytical solutions the following math problems solved in Python. Think step by step. Here is one example how to do it,
+
+Question: Olivia has $23. She bought five bagels for $3 each. How much money does she have left?
+Answer:
+def solution():
+    """Olivia has $23. She bought five bagels for $3 each. How much money does she have left?"""
+    money_initial = 23
+    bagels = 5
+    bagel_cost = 3
+    money_spent = bagels * bagel_cost
+    money_left = money_initial - money_spent
+    result = money_left
+    return result
+    
+Analytical:
+Olivia had 23 dollars.
+And she bought 5 bagels.
+And each bagel costs 3 dollars.
+So she spent 5 * 3 = 15 dollars.
+So she has 23 - 15 = 8 dollars left.
+So the answer is 8.
+
+
+Now it's your turn. Here is another math problem:
+Question: Michael had 58 golf balls. On tuesday, he lost 23 golf balls. On wednesday, he lost 2 more. How many golf balls did he have at the end of wednesday?
+Answer:
+def solution():
+    """Michael had 58 golf balls. On tuesday, he lost 23 golf balls. On wednesday, he lost 2 more. How many golf balls did he have at the end of wednesday?"""
+    golf_balls_initial = 58
+    golf_balls_lost_tuesday = 23
+    golf_balls_lost_wednesday = 2
+    golf_balls_left = golf_balls_initial - golf_balls_lost_tuesday - golf_balls_lost_wednesday
+    result = golf_balls_left
+    return result
+
+
+
+Question: There were nine computers in the server room. Five more computers were installed each day, from monday to thursday. How many computers are now in the server room?
+Answer:
+def solution():
+    """There were nine computers in the server room. Five more computers were installed each day, from monday to thursday. How many computers are now in the server room?"""
+    computers_initial = 9
+    computers_per_day = 5
+    num_days = 4  # 4 days between monday and thursday
+    computers_added = computers_per_day * num_days
+    computers_total = computers_initial + computers_added
+    result = computers_total
+    return result
+
+
+
+Question: Shawn has five toys. For Christmas, he got two toys each from his mom and dad. How many toys does he have now?
+Answer:
+def solution():
+    """Shawn has five toys. For Christmas, he got two toys each from his mom and dad. How many toys does he have now?"""
+    toys_initial = 5
+    mom_toys = 2
+    dad_toys = 2
+    total_received = mom_toys + dad_toys
+    total_toys = toys_initial + total_received
+    result = total_toys
+    return result
+
+
+
+Question: Jason had 20 lollipops. He gave Denny some lollipops. Now Jason has 12 lollipops. How many lollipops did Jason give to Denny?
+Answer:
+def solution():
+    """Jason had 20 lollipops. He gave Denny some lollipops. Now Jason has 12 lollipops. How many lollipops did Jason give to Denny?"""
+    jason_lollipops_initial = 20
+    jason_lollipops_after = 12
+    denny_lollipops = jason_lollipops_initial - jason_lollipops_after
+    result = denny_lollipops
+    return result
+
+
+
+Question: There are 15 trees in the grove. Grove workers will plant trees in the grove today. After they are done, there will be 21 trees. How many trees did the grove workers plant today?
+Answer:
+def solution():
+    """There are 15 trees in the grove. Grove workers will plant trees in the grove today. After they are done, there will be 21 trees. How many trees did the grove workers plant today?"""
+    trees_initial = 15
+    trees_after = 21
+    trees_added = trees_after - trees_initial
+    result = trees_added
+    return result
+
+
+
+Question: If there are 3 cars in the parking lot and 2 more cars arrive, how many cars are in the parking lot?
+Answer:
+def solution():
+    """If there are 3 cars in the parking lot and 2 more cars arrive, how many cars are in the parking lot?"""
+    cars_initial = 3
+    cars_arrived = 2
+    total_cars = cars_initial + cars_arrived
+    result = total_cars
+    return result
+
+
+
+Question: Leah had 32 chocolates and her sister had 10 more chocolates than her. If they ate 35, how many pieces do they have left in total?
+Answer:
+def solution():
+    """Leah had 32 chocolates and her sister had 42. If they ate 35, how many pieces do they have left in total?"""
+    leah_chocolates = 32
+    sister_chocolates = 42
+    total_chocolates = leah_chocolates + sister_chocolates
+    chocolates_eaten = 35
+    chocolates_left = total_chocolates - chocolates_eaten
+    result = chocolates_left
+    return result
+'''.strip()
+
+TURBO_P2A_ASSISTANT = '''
+Analytical:
+Michael started with 58 golf balls.
+And he lost 23 golf balls on tuesday.
+So after losing 23 on tuesday, he had 58 -23 = 35.
+And then he lost 2 more golf balls on wednesday.
+So after losing 2 more on wednesday, he had 35 - 2 = 33 golf balls.
+So the answer is 33.
+
+
+
+Analytical:
+There were originally 9 computers.
+And 5 more computers were added from monday to thursday.
+There are 4 days between monday and thursday.
+So 5 * 4 = 20 computers were added in total.
+So there are 9 + 20 = 29 computers now.
+So the answer is 29.
+
+
+
+Analytical:
+Shawn started with 5 toys.
+And he got 2 toys each from his mom and dad.
+So he got 2 + 2 = 4 toys.
+Therefore, he has 5 + 4 = 9 toys now.
+So the answer is 9.
+
+
+
+Analytical:
+Jason started with 20 lollipops.
+Then he had 12 after giving some to Denny.
+So he gave Denny 20 - 12 = 8 lollipops.
+So the answer is 8.
+
+
+
+Analytical:
+There are 15 trees originally.
+And there were 21 trees after some more were planted.
+So 21 - 15 = 6 trees were planted.
+So the answer is 6.
+
+
+
+Analytical:
+There are originally 3 cars.
+And 2 more cars arrive.
+So there are 3 + 2 = 5 cars now.
+So the answer is 5.
+
+
+
+Analytical:
+Originally, Leah had 32 chocolates.
+And her sister had 10 more chocolates than her.
+So her sister had 42 chocolates.
+So in total they had 32 + 42 = 74 chocolates.
+Then they ate 35 chocolates.
+Therefore they had 74 - 35 = 39 chocolates left.
+So the answer is 39.
+'''.strip()
+
+
+# ============ Validation COT/PAL ================= #
+VAL_SYSTEM = 'You are an expert on problems related to maths, programming, coding and logic. We need to collaborate in order to solve problems together. You will be provided with a problem and an answer. This answer can be in analytical form or as a Python program. You need to check if the answer provided solves the problem correctly. If the answer is incorrect, you need to suggest changes to make the answer valid.'
+
+VAL_USER = '''
+Let's check if the following problem-answer pairs are correct. Think step by step. Here are examples how to do it, one in analytical and one in Python form.
+
+Question: Olivia has $23. She bought five bagels for $3 each. How much money does she have left?
+
+Proposed Answer:
+Olivia had 23 dollars.
+And she bought 5 bagels.
+And each bagel costs 3 dollars.
+So she spent 3 dollars for 5 bagels = 3 dollars.
+So she has 23 - 3 = 20 dollars left.
+So the answer is 20.
+
+Correct Answer:
+#The mistake exists in instruction 4. The cost per bagel is 3, not 3 in total. For 5 bagels Olivia would spend 15 dollars. Here is an updated solution:
+Olivia had 23 dollars.
+And she bought 5 bagels.
+And each bagel costs 3 dollars.
+So she spent 5 * 3 = 15 dollars.
+So she has 23 - 15 = 8 dollars left.
+So the answer is 8.
+
+Question: Olivia has $23. She bought five bagels for $3 each. How much money does she have left?
+
+Proposed Answer:
+def solution():
+    """Olivia has $23. She bought five bagels for $3 each. How much money does she have left?"""
+    money_initial = 23
+    bagels = 5
+    bagel_cost = 3
+    money_spent = bagel_cost
+    money_left = money_initial - money_spent
+    result = money_left
+    return result
+
+Correct Answer:
+#The mistake exists in program line 3. The cost per bagel is 3, not 3 in total. For 5 bagels Olivia would spend 15 dollars. Here is an updated solution:
+def solution():
+    """Olivia has $23. She bought five bagels for $3 each. How much money does she have left?"""
+    money_initial = 23
+    bagels = 5
+    bagel_cost = 3
+    money_spent = bagels * bagel_cost
+    money_left = money_initial - money_spent
+    result = money_left
+    return result
+
+
+Now it's your turn. Here is another problem:
+Question: If there are 3 cars in the parking lot and 2 more cars arrive, how many cars are in the parking lot?
+Proposed Answer:
+There are originally 3 cars.
+And 2 more cars arrive.
+So there are 3 + 2 = 5 cars now.
+So the answer is 5.
+
+
+
+Question: Leah had 32 chocolates and her sister had 10 more chocolates than her. If they ate 35, how many pieces do they have left in total?
+Proposed Answer:
+def solution():
+    """Leah had 32 chocolates and her sister had 42. If they ate 35, how many pieces do they have left in total?"""
+    leah_chocolates = 32
+    sister_chocolates = 42
+    total_chocolates = leah_chocolates + sister_chocolates
+    chocolates_eaten = 35
+    chocolates_left = total_chocolates - chocolates_eaten
+    result = chocolates_left
+    return result
+    
+    
+    
+Question: Michael had 58 golf balls. On tuesday, he lost 23 golf balls. On wednesday, he lost 2 more. How many golf balls did he have at the end of wednesday?
+Proposed Answer:
+Michael started with 58 golf balls. And he lost 23 golf balls on tuesday.
+So after losing 23 on tuesday, he had 58 - 23 = 35.
+And then he lost 2 more golf balls on wednesday, 2 more than 23 is 25.
+So after losing 25 on wednesday, he had 35 - 25 = 10 golf balls.
+So the answer is 10.
+
+
+
+Question: There were nine computers in the server room. Five more computers were installed each day, from monday to thursday. How many computers are now in the server room?
+Proposed Answer:
+There were originally 9 computers. And 5 more computers were added from monday to thursday.
+There are 2 days between monday and thursday.
+So 5 * 2 = 10 computers were added in total.
+So there are 9 + 10 = 19 computers now.
+So the answer is 19.
+
+
+
+Question: Shawn has five toys. For Christmas, he got two toys each from his mom and dad. How many toys does he have now?
+Proposed Answer:
+def solution():
+    """Shawn has five toys. For Christmas, he got two toys each from his mom and dad. How many toys does he have now?"""
+    toys_initial = 5
+    total_received = 2
+    total_toys = toys_initial + total_received
+    result = total_toys
+    return result
+
+
+
+Question: Jason had 20 lollipops. He gave Denny some lollipops. Now Jason has 12 lollipops. How many more lollipops did Jason should have given to Denny so that they have the same amount of lollipops?
+Proposed Answer:
+def solution():
+    """Jason had 20 lollipops. He gave Denny some lollipops. Now Jason has 12 lollipops. How many more lollipops did Jason should have given to Denny so that they have the same amount of lollipops"""
+    jason_lollipops_initial = 20
+    jason_lollipops_half = jason_lollipops_initial / 2
+    denny_lollipops = jason_lollipops_half
+    result = denny_lollipops
+    return result
+'''.strip()
+
+VAL_ASSISTANT = '''
+Correct Answer:
+#The answer is correct. Here it is again:
+There are originally 3 cars.
+And 2 more cars arrive.
+So there are 3 + 2 = 5 cars now.
+So the answer is 5.
+
+
+
+Correct Answer:
+#The answer is correct. Here it is again:
+def solution():
+    """Leah had 32 chocolates and her sister had 42. If they ate 35, how many pieces do they have left in total?"""
+    leah_chocolates = 32
+    sister_chocolates = 42
+    total_chocolates = leah_chocolates + sister_chocolates
+    chocolates_eaten = 35
+    chocolates_left = total_chocolates - chocolates_eaten
+    result = chocolates_left
+    return result
+    
+    
+    
+Correct Answer:
+#The mistake exists in instruction 3. Michael lost 2 more balls on wednesday, not 2 more than tuesday. Here is an updated solution:
+Michael started with 58 golf balls. And he lost 23 golf balls on tuesday.
+So after losing 23 on tuesday, he had 58 -23 = 35.
+And then he lost 2 more golf balls on wednesday.
+So after losing 2 more on wednesday, he had 35 - 2 = 33 golf balls.
+So the answer is 33.
+
+
+
+Correct Answer:
+#The mistake exists in instruction 2. There are 4 days between monday and thursday, not 2. Here is an updated solution:
+There were originally 9 computers. And 5 more computers were added from monday to thursday.
+There are 4 days between monday and thursday.
+So 5 * 4 = 20 computers were added in total.
+So there are 9 + 20 = 29 computers now.
+So the answer is 29.
+
+
+
+Correct Answer:
+#The mistake exists in program line 2. Shawn received 2 gifts per each parent, not 2 in total. Here is an updated solution:
+def solution():
+    """Shawn has five toys. For Christmas, he got two toys each from his mom and dad. How many toys does he have now?"""
+    toys_initial = 5
+    mom_toys = 2
+    dad_toys = 2
+    total_received = mom_toys + dad_toys
+    total_toys = toys_initial + total_received
+    result = total_toys
+    return result
+
+
+
+Correct Answer:
+#The mistake exists in program line 3. The question is how many more should Jason give, not how many in general. Here is an updated solution:
+def solution():
+    """Jason had 20 lollipops. He gave Denny some lollipops. Now Jason has 12 lollipops. How many more lollipops did Jason should have given to Denny so that they have the same amount of lollipops"""
+    jason_lollipops_initial = 20
+    jason_lollipops_after = 12
+    denny_lollipops = jason_lollipops_initial - jason_lollipops_after
+    lollipops_difference_after = jason_lollipops_after - denny_lollipops
+    result = lollipops_difference_after
+    return result
+'''
 
 
 # === GPT-4 ===
@@ -799,9 +1346,7 @@ So he gave Denny 20 - 12 = 8 lollipops.
 So the answer is 8.
 '''.strip()
 
-
 GPT4_PAL_SYSTEM = 'You are a helpful assistant that can solve math problems by using Python code.'
-
 
 GPT4_PAL_USER = '''
 Let's use python to solve math problems. You need to write python code to answer these math problems. Here is one example how to do it,
@@ -845,7 +1390,6 @@ Question: Jason had 20 lollipops. He gave Denny some lollipops. Now Jason has 12
 
 
 '''.strip()
-
 
 GPT4_PAL_ASSISTANT = '''
 def solution():
@@ -1046,7 +1590,6 @@ def solution():
 
 Which of the above two choices can correctly answer the math problem?
 '''.strip()
-
 
 GPT4_SELECT_ASSISTANT = '''
 (B) can correctly answer the math problem. Because (A) incorrectly calculated the area of the torn-off portion instead of the remaining portion.
