@@ -316,7 +316,7 @@ def extract_geom(ans_string: str):
         # Extract just the content inside \boxed{}
         answer = answer_match.group(1)
     else:
-        answer = ''
+        answer = ans_string.split('\n')[-1]
     return answer
 
 
