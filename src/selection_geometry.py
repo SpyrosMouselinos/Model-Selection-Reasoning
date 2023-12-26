@@ -425,7 +425,7 @@ if __name__ == '__main__':
     pal_temperature = args.pal_temperature
     backbone = args.backbone
     if backbone == 'mm':
-        pre_loaded_model = load_hf_model('cpu')
+        pre_loaded_model = load_hf_model('gpu')
     else:
         pre_loaded_model = None
     run_only = args.run_only
