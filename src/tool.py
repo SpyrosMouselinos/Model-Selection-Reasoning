@@ -5,6 +5,22 @@ import regex
 import func_timeout
 from typing import Union
 import random
+import torch
+from transformers import (
+    AutoModelForCausalLM,
+    AutoTokenizer,
+    BitsAndBytesConfig,
+)
+
+import src.prompts.math_prompt
+import src.prompts.geometry_static_prompt
+import src.prompts.geometry_static_prompt_short
+from src.model_inference import FakeLLM
+
+
+def json_load(fname: str):
+    with open(fname, 'r') as f:
+        return json.load(f)
 
 
 def jsonlines_load(fname: str):
@@ -302,3 +318,61 @@ def extract_geom(ans_string: str):
     else:
         answer = ''
     return answer
+
+
+def load_hf_model(device='fake'):
+    # model_path = "akjindal53244/Arithmo-Mistral-7B"
+    # model_path = "meta-math/MetaMath-Mistral-7B"
+    model_path = "microsoft/phi-1_5"
+    run_model_on_gpu = device == 'gpu'
+    use_4bit = True
+    bnb_4bit_compute_dtype = "float16"
+    bnb_4bit_quant_type = "nf4"
+    use_nested_quant = False
+    # Load Tokenizer
+    tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
+    tokenizer.pad_token = tokenizer.eos_token
+    tokenizer.padding_side = "right"
+
+    if device == 'fake':
+        model = FakeLLM(context_size=2048, max_vocab=tokenizer.vocab_size - 1)
+    else:
+        if run_model_on_gpu:
+            device_map = {"": 0}
+            # Load tokenizer and model with QLoRA configuration
+            compute_dtype = getattr(torch, bnb_4bit_compute_dtype)
+
+            bnb_config = BitsAndBytesConfig(
+                load_in_4bit=use_4bit,
+                bnb_4bit_quant_type=bnb_4bit_quant_type,
+                bnb_4bit_compute_dtype=compute_dtype,
+                bnb_4bit_use_double_quant=use_nested_quant,
+            )
+            model = AutoModelForCausalLM.from_pretrained(
+                model_path,
+                quantization_config=bnb_config,
+                device_map=device_map,
+                trust_remote_code=True
+            )
+        else:
+            device_map = {"": "cpu"}
+            model = AutoModelForCausalLM.from_pretrained(
+                model_path,
+                device_map=device_map,
+                trust_remote_code=True
+            )
+    return model, tokenizer
+
+
+if __name__ == '__main__':
+    m, t = load_hf_model('fake')
+    messages = src.prompts.geometry_static_prompt_short.VAL_GEOM_USER
+    inputs = t(messages, return_tensors="pt")
+    outputs = m.generate(**inputs,
+                           max_new_tokens=1,
+                           do_sample=1,
+                           top_p=1,
+                           temperature=1,
+                           num_return_sequences=5)
+    ret = t.batch_decode(outputs, skip_special_tokens=True)
+    #print(ret)

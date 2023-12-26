@@ -7,17 +7,22 @@ from datetime import datetime
 import argparse
 from tqdm import tqdm
 from typing import Union
-from prompts import math_prompt
+from prompts import geometry_static_prompt_short
 from collections import OrderedDict, Counter
+
+from src.model_inference import llm_inference
 from tool import *
+
 split_symbol = "XXXXX"
+
 
 def simple_user_assistant_split(prompt: str):
     messages = []
     system_message = prompt.split('\n')[0]
     messages.append({"role": "system", "content": system_message})
 
-    first_user_message = prompt[prompt.find("Let"):prompt.find("Now")] + "Now it's your turn. Here is another math problem:\n\n" + prompt.split(split_symbol)[1]
+    first_user_message = prompt[prompt.find("Let"):prompt.find(
+        "Now")] + "Now it's your turn. Here is another math problem:\n\n" + prompt.split(split_symbol)[1]
     first_user_message = first_user_message.replace(split_symbol, '')
     first_assistant_message = prompt.split(split_symbol)[6].strip()
     messages += [
@@ -28,13 +33,13 @@ def simple_user_assistant_split(prompt: str):
     user_messages = []
     assistant_messages = []
     spliced = prompt.split(split_symbol)
-    for i in range(5, len(spliced)-1):
+    for i in range(5, len(spliced) - 1):
         if i % 2 == 1:
             assistant_messages += [spliced[i].replace("\' ", '').replace(" \'", '').strip()]
         else:
             user_messages += [spliced[i]]
 
-    for i in range(len(user_messages) - 2):
+    for i in range(5):
         messages += [
             {"role": "user", "content": f"{user_messages[i]}"},
             {"role": "assistant", "content": f"{assistant_messages[i]}"},
@@ -46,7 +51,56 @@ def simple_user_assistant_split(prompt: str):
     return messages
 
 
-def query_cot(data: dict, key: str, cot_temperature: float, sc_num: float, backbone: str, memory):
+def get_val_prompt(data, proposal):
+    '''
+    This function is used to generate the validation prompt.
+    I don't see why it should be different between GPT4 / ChatGPT
+    '''
+    system_message = geometry_static_prompt_short.VAL_GEOM_SYSTEM
+    user_message = geometry_static_prompt_short.VAL_GEOM_USER
+    assistant_message = geometry_static_prompt_short.VAL_GEOM_ASSISTANT
+
+    messages = get_user_assistant_messages(
+        system_message, user_message, assistant_message, [], 'sel')
+    question_message = data['prompt'][data['prompt'].rfind('XXXXX') + 6:].split('Answer')[0].strip()
+    messages += [{"role": "user",
+                  "content": f"Question: {question_message}\n\nProposed Answer:\n{proposal}\n\nCorrect Answer:\n"}]
+    return messages
+
+
+def get_user_assistant_messages(system_message: str, user_message: str, assistant_message: str, memory, type='cot'):
+    '''
+    This function is used to convert the prompt into the message format used by OpenAI Chat API.
+    '''
+    messages = []
+    messages.append({"role": "system", "content": system_message})
+    split_user_messages = user_message.split('\n\n\n\n')
+    split_assistant_messages = assistant_message.split('\n\n\n\n')
+
+    for i in range(len(split_user_messages)):
+        question = split_user_messages[i]
+        answer = split_assistant_messages[i]
+        messages += [
+            {"role": "user", "content": f"{question}"},
+            {"role": "assistant", "content": f"{answer}"},
+        ]
+
+    if type == 'cot' or type == 'pal':
+        for i in range(len(memory)):
+            if memory[i] is None or memory[i][0] is None or memory[i][1] is None:
+                continue
+            else:
+                messages += [
+                    {"role": "user", "content": f"{memory[i][0]}"},
+                    {"role": "assistant", "content": f"{memory[i][1]}"},
+                ]
+    elif type == 'sel':
+        pass
+    return messages
+
+
+def query_cot(data: dict, key: str, cot_temperature: float, sc_num: float, backbone: str, memory,
+              pre_loaded_model=None):
     '''
     This function is used to query OpenAI for CoT solutions.
 
@@ -59,21 +113,25 @@ def query_cot(data: dict, key: str, cot_temperature: float, sc_num: float, backb
     Returns:
         completions: a list containing the CoT solution
     '''
-    query_message = simple_user_assistant_split(data['prompt'])
 
     if backbone == 'gpt4':
-        model_name = 'gpt-4'
+        model = 'gpt-4'
+        query_message = simple_user_assistant_split(data['prompt'])
     elif backbone == 'chatgpt':
-        model_name = 'gpt-3.5-turbo'
+        model = 'gpt-3.5-turbo-1106'
+        query_message = simple_user_assistant_split(data['prompt'])
+    elif backbone == 'mm':
+        model = pre_loaded_model
+        query_message = data['prompt']
 
     start_time = time.time()
     completions = []
     while True:
         try:
-            cot_solution = openai.ChatCompletion.create(
-                api_key=key,
-                model=model_name,
-                max_tokens=300,
+            cot_solution = llm_inference(
+                key=key,
+                model=model,
+                max_tokens=500,
                 stop='\n\n\n',
                 messages=query_message,
                 temperature=cot_temperature,
@@ -83,10 +141,12 @@ def query_cot(data: dict, key: str, cot_temperature: float, sc_num: float, backb
             print(e)
             cot_solution = None
 
-        if cot_solution is not None:
+        if cot_solution is not None and backbone != 'mm':
             completions.extend([choice['message']['content']
                                 for choice in cot_solution['choices']])
             return completions
+        elif cot_solution is not None and backbone == 'mm':
+            return cot_solution
         else:
             sleep_time = 1
             time.sleep(sleep_time)
@@ -95,7 +155,7 @@ def query_cot(data: dict, key: str, cot_temperature: float, sc_num: float, backb
             return None
 
 
-def query_pal(data: dict, key: str, pal_temperature: float, backbone: str, memory):
+def query_pal(data: dict, key: str, pal_temperature: float, backbone: str, memory, pre_loaded_model=None):
     '''
     This function is used to query OpenAI for PAL solutions.
 
@@ -110,16 +170,19 @@ def query_pal(data: dict, key: str, pal_temperature: float, backbone: str, memor
     '''
     query_message = simple_user_assistant_split(data['pal_prompt'])
     if backbone == 'gpt4':
-        model_name = 'gpt-4'
+        model = 'gpt-4'
     elif backbone == 'chatgpt':
-        model_name = 'gpt-3.5-turbo'
+        model = 'gpt-3.5-turbo'
+    elif backbone == 'mm':
+        model = pre_loaded_model
+
     start_time = time.time()
     completions = []
     while True:
         try:
-            pal_solution = openai.ChatCompletion.create(
-                api_key=key,
-                model=model_name,
+            pal_solution = llm_inference(
+                key=key,
+                model=model,
                 max_tokens=300,
                 stop='\n\n\n',
                 messages=query_message,
@@ -141,69 +204,25 @@ def query_pal(data: dict, key: str, pal_temperature: float, backbone: str, memor
             return None
 
 
-def query_cot2pal(data: dict, key: str, backbone: str, cot_answer: str):
-    '''
-    This function is used to query OpenAI for CoT-->PAL conversion.
-    Args:
-        data: a dict containing the question and answer
-        key: the OpenAI API key
-        backbone: ChatGPT or GPT-4
-
-    Returns:
-        completions: a list containing the PAL solution
-    '''
-    query_message = get_cot2pal_prompt(data, cot_answer=cot_answer)
-    if backbone == 'gpt4':
-        model_name = 'gpt-4'
-    elif backbone == 'chatgpt':
-        model_name = 'gpt-3.5-turbo'
-
-    start_time = time.time()
-    completions = []
-    while True:
-        try:
-            pal_solution = openai.ChatCompletion.create(
-                api_key=key,
-                model=model_name,
-                max_tokens=500,
-                stop='\n\n\n',
-                messages=query_message,
-                temperature=0.2,
-                top_p=0.95,
-                n=1)
-        except Exception as e:
-            pal_solution = None
-
-        if pal_solution is not None:
-            completions.extend([choice['message']['content']
-                                for choice in pal_solution['choices']])
-            completions = completions[:1]
-            return completions
-        else:
-            sleep_time = 1
-            time.sleep(sleep_time)
-
-        if time.time() - start_time > 60:
-            return None
-
-
-def query_validator(data, key, backbone, proposal):
+def query_validator(data, key, backbone, proposal, pre_loaded_model=None):
     '''
     This function is used to query OpenAI for validating COT/PAL solutions.
     '''
     query_message = get_val_prompt(data, proposal=proposal)
     if backbone == 'gpt4':
-        model_name = 'gpt-4'
+        model = 'gpt-4'
     elif backbone == 'chatgpt':
-        model_name = 'gpt-3.5-turbo'
+        model = 'gpt-3.5-turbo-1106'
+    elif backbone == 'mm':
+        model = pre_loaded_model
 
     start_time = time.time()
     completions = []
     while True:
         try:
-            validator_opinion = openai.ChatCompletion.create(
-                api_key=key,
-                model=model_name,
+            validator_opinion = llm_inference(
+                key=key,
+                model=model,
                 max_tokens=500,
                 stop='\n\n\n',
                 messages=query_message,
@@ -214,11 +233,12 @@ def query_validator(data, key, backbone, proposal):
             print(e)
             validator_opinion = None
 
-        if validator_opinion is not None:
+        if validator_opinion is not None and backbone != 'mm':
             completions.extend([choice['message']['content']
                                 for choice in validator_opinion['choices']])
-            # completions = completions[:1]
             return completions
+        elif validator_opinion is not None and backbone == 'mm':
+            return validator_opinion
         else:
             sleep_time = 1
             time.sleep(sleep_time)
@@ -232,6 +252,7 @@ def query_dialogue(data: dict,
                    backbone: str,
                    sc_num=1,
                    use_validators=False,
+                   pre_loaded_model=None,
                    memory=[(None, None)]):
     cot_answers = []
     cot_solutions = []
@@ -240,6 +261,7 @@ def query_dialogue(data: dict,
                              cot_temperature=cot_temperature,
                              sc_num=sc_num,
                              backbone=backbone,
+                             pre_loaded_model=pre_loaded_model,
                              memory=memory)
     if cot_solution is None:
         print('Time out')
@@ -261,31 +283,25 @@ def query_dialogue(data: dict,
         if a == majority_ans:
             final_solution = s
             break
-    # if use_validators:
-    #     was_it_correct = []
-    #     corrected_answers = []
-    #     corrected_solutions = []
-    #     cot_validation = query_validator(data=data,
-    #                                      key=key,
-    #                                      backbone=backbone,
-    #                                      proposal=final_solution)
-    #     if cot_validation is None:
-    #         print('Time out')
-    #         return None
-    #     else:
-    #         for i in range(len(cot_validation)):
-    #             vcorrectness, vsolution, vanswer = extract_validity_turbo(cot_validation[i])
-    #             was_it_correct.append(vcorrectness)
-    #             corrected_answers.append(vanswer)
-    #             corrected_solutions.append(vsolution)
-    #
-    #     count = Counter(corrected_solutions)
-    #     cot_validation = count.most_common(1)[0][0]
-    #     # Run Agreement
-    #     # cot_agreement = query_agreement(data=data, key=key, mode='cot', backbone=backbone, proposal=cot_result,
-    #     #                                 correction=cot_validation)
-    # else:
-    #     cot_validation = final_solution
+    if use_validators:
+        corrected_answers = []
+        cot_validation = query_validator(data=data, key=key, backbone=backbone, proposal=final_solution)
+        if cot_validation is None:
+            print('Time out')
+            return ''
+        else:
+            for i in range(len(cot_validation)):
+                vanswer = extract_geom(cot_validation[i])
+                if vanswer != '':
+                    corrected_answers.append(vanswer)
+
+        if len(corrected_answers) > 0:
+            count = Counter(corrected_answers)
+            cot_validation = count.most_common(1)[0][0]
+        else:
+            return ''
+    else:
+        cot_validation = final_solution
     # # Run COT --> PAL
     # cot2pal_result = query_cot2pal(data=data,
     #                                key=key,
@@ -314,7 +330,7 @@ def query_dialogue(data: dict,
     #     #                                 correction=pal_validation)
     # else:
     #     pal_validation = cot2pal_result
-    return majority_ans
+    return cot_validation
 
 
 def query_agents_memory(data: dict,
@@ -322,7 +338,8 @@ def query_agents_memory(data: dict,
                         sc_num: int,
                         backbone: str,
                         memory=[(None, None)],
-                        use_validators=False
+                        use_validators=False,
+                        pre_loaded_model=None
                         ):
     '''
     Args:
@@ -339,6 +356,7 @@ def query_agents_memory(data: dict,
                                     backbone=backbone,
                                     sc_num=sc_num,
                                     use_validators=use_validators,
+                                    pre_loaded_model=pre_loaded_model,
                                     memory=memory)
     if agent_solution is None:
         print('Time out')
@@ -346,7 +364,7 @@ def query_agents_memory(data: dict,
     ####################
     # === dump data ===
     to_dump_data = OrderedDict(
-        {'index': data['index'], 'question': data['question'], 'answer': data['answer'],
+        {'index': data['question_index'], 'answer': data['answer'],
          'majority_ans': agent_solution, 'final_answers': None,
          'cot_executed': None, 'pal_executed': None,
          'cot_generated': None, 'pal_generated': None, 'choice_solution': None}
@@ -359,11 +377,11 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--start', type=int, default=0)
     parser.add_argument('--end', type=int, default=400)
-    parser.add_argument('--run_only', type=str, default=None)
+    parser.add_argument('--run_only', type=str, default='../output/chatgpt/geometry_agents@5.txt')
     parser.add_argument('--dataset', type=str, choices=[
         'geometry'], default='geometry')
     parser.add_argument('--backbone', type=str,
-                        choices=['chatgpt', 'gpt4'], default='chatgpt')
+                        choices=['mm', 'chatgpt', 'gpt4'], default='mm')
     parser.add_argument('--cot_temperature', type=float, default=0.5)
     parser.add_argument('--pal_temperature', type=float, default=0.8)
     parser.add_argument('--sc_num', type=int, default=5,
@@ -381,6 +399,10 @@ if __name__ == '__main__':
     cot_temperature = args.cot_temperature
     pal_temperature = args.pal_temperature
     backbone = args.backbone
+    if backbone == 'mm':
+        pre_loaded_model = load_hf_model('fake')
+    else:
+        pre_loaded_model = None
     run_only = args.run_only
     sc_num = args.sc_num
     output_dir = args.output_dir
@@ -443,16 +465,17 @@ if __name__ == '__main__':
         wait_time = min(sc_num * 300, 2000)
         start_time = time.time()
         while True:
-            #try:
-            ans, new_memory_entry = query_agents_memory(task,
-                                                        key=key,
-                                                        sc_num=sc_num,
-                                                        backbone=backbone,
-                                                        memory=memory,
-                                                        use_validators=True)
-                #memory.append(new_memory_entry)
-            #except Exception as e:
-                #ans = None
+            # try:
+            ans = query_agents_memory(data=task,
+                                      key=key,
+                                      sc_num=sc_num,
+                                      backbone=backbone,
+                                      memory=memory,
+                                      use_validators=True,
+                                      pre_loaded_model=pre_loaded_model)
+            # memory.append(new_memory_entry)
+            # except Exception as e:
+            # ans = None
 
             if ans is not None:
                 with open(save_path, "a+") as fout:
