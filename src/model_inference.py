@@ -48,7 +48,7 @@ def huggingface_inference(model, max_tokens, messages, temperature, top_p, n, st
     temperature = temperature
     num_return_sequences = n
     # Define the tokens you want to stop at
-    stop_tokens = ["\n\n", "Example", "Problem"]
+    stop_tokens = ["\n\n\n", "Example", "Math Problem", "Problem"]
     with torch.no_grad():
         outputs = llm.generate(**inputs,
                                max_new_tokens=max_new_tokens,
@@ -93,8 +93,6 @@ class FakeLLM:
     def generate(self, input_ids, **kwargs):
         if input_ids.size()[1] + 300 > self.context_size:
             print(f"WARNING YOUR CURRENT CONTEXT SIZE IS: {input_ids.size()[1]}")
-        else:
-            print(f"WARNING YOUR CURRENT CONTEXT SIZE IS: {input_ids.size()}")
         if 'num_return_sequences' in kwargs:
             n = kwargs['num_return_sequences']
         elif 'n' in kwargs:

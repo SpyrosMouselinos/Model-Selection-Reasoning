@@ -12,10 +12,10 @@ from transformers import (
     BitsAndBytesConfig,
 )
 
-import src.prompts.math_prompt
-import src.prompts.geometry_static_prompt
-import src.prompts.geometry_static_prompt_short
-from src.model_inference import FakeLLM
+import prompts.math_prompt
+import prompts.geometry_static_prompt
+import prompts.geometry_static_prompt_short
+from model_inference import FakeLLM
 
 
 def json_load(fname: str):
@@ -366,7 +366,7 @@ def load_hf_model(device='fake'):
 
 if __name__ == '__main__':
     m, t = load_hf_model('fake')
-    messages = src.prompts.geometry_static_prompt_short.VAL_GEOM_USER
+    messages = prompts.geometry_static_prompt.VAL_GEOM_USER
     inputs = t(messages, return_tensors="pt")
     outputs = m.generate(**inputs,
                            max_new_tokens=1,

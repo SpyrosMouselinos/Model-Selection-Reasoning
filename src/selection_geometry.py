@@ -7,10 +7,10 @@ from datetime import datetime
 import argparse
 from tqdm import tqdm
 from typing import Union
-from prompts import geometry_static_prompt_short
+from prompts import geometry_static_prompt_short, geometry_static_prompt_mini
 from collections import OrderedDict, Counter
 
-from src.model_inference import llm_inference
+from model_inference import llm_inference
 from tool import *
 
 split_symbol = "XXXXX"
@@ -51,21 +51,34 @@ def simple_user_assistant_split(prompt: str):
     return messages
 
 
-def get_val_prompt(data, proposal):
+def simple_user_assistant_merge(prompt: str):
+    message = []
+    spliced = prompt.split(split_symbol)
+    for i in range(6):
+        message.append(spliced[i])
+    message.append(spliced[- 1])
+    message = '\n'.join(message)
+    return message
+
+
+def get_val_prompt(data, proposal, mode='short'):
     '''
     This function is used to generate the validation prompt.
     I don't see why it should be different between GPT4 / ChatGPT
     '''
-    system_message = geometry_static_prompt_short.VAL_GEOM_SYSTEM
-    user_message = geometry_static_prompt_short.VAL_GEOM_USER
-    assistant_message = geometry_static_prompt_short.VAL_GEOM_ASSISTANT
+    if mode == 'short':
+        system_message = geometry_static_prompt_short.VAL_GEOM_SYSTEM
+        user_message = geometry_static_prompt_short.VAL_GEOM_USER
+        assistant_message = geometry_static_prompt_short.VAL_GEOM_ASSISTANT
 
-    messages = get_user_assistant_messages(
-        system_message, user_message, assistant_message, [], 'sel')
-    question_message = data['prompt'][data['prompt'].rfind('XXXXX') + 6:].split('Answer')[0].strip()
-    messages += [{"role": "user",
-                  "content": f"Question: {question_message}\n\nProposed Answer:\n{proposal}\n\nCorrect Answer:\n"}]
-    return messages
+        messages = get_user_assistant_messages(
+            system_message, user_message, assistant_message, [], 'sel')
+        question_message = data['prompt'][data['prompt'].rfind('XXXXX') + 6:].split('Answer')[0].strip()
+        messages += [{"role": "user",
+                      "content": f"Question: {question_message}\n\nProposed Answer:\n{proposal}\n\nCorrect Answer:\n"}]
+    elif mode == 'mini':
+        question_message = data['prompt'][data['prompt'].rfind('XXXXX') + 6:].split('Answer')[0].strip()
+        return geometry_static_prompt_mini.MINI_VAL + '\n' + f"Question: {question_message}\n\nProposed Answer:\n{proposal}\n\nCorrect Answer:\n"
 
 
 def get_user_assistant_messages(system_message: str, user_message: str, assistant_message: str, memory, type='cot'):
@@ -122,7 +135,7 @@ def query_cot(data: dict, key: str, cot_temperature: float, sc_num: float, backb
         query_message = simple_user_assistant_split(data['prompt'])
     elif backbone == 'mm':
         model = pre_loaded_model
-        query_message = data['prompt']
+        query_message = simple_user_assistant_merge(data['prompt'])
 
     start_time = time.time()
     completions = []
@@ -208,13 +221,15 @@ def query_validator(data, key, backbone, proposal, pre_loaded_model=None):
     '''
     This function is used to query OpenAI for validating COT/PAL solutions.
     '''
-    query_message = get_val_prompt(data, proposal=proposal)
     if backbone == 'gpt4':
         model = 'gpt-4'
+        query_message = get_val_prompt(data, proposal=proposal)
     elif backbone == 'chatgpt':
         model = 'gpt-3.5-turbo-1106'
+        query_message = get_val_prompt(data, proposal=proposal)
     elif backbone == 'mm':
         model = pre_loaded_model
+        query_message = get_val_prompt(data, proposal=proposal, mode='mini')
 
     start_time = time.time()
     completions = []
@@ -285,7 +300,8 @@ def query_dialogue(data: dict,
             break
     if use_validators:
         corrected_answers = []
-        cot_validation = query_validator(data=data, key=key, backbone=backbone, proposal=final_solution)
+        cot_validation = query_validator(data=data, key=key, backbone=backbone, proposal=final_solution,
+                                         pre_loaded_model=pre_loaded_model)
         if cot_validation is None:
             print('Time out')
             return ''
@@ -377,7 +393,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--start', type=int, default=0)
     parser.add_argument('--end', type=int, default=400)
-    parser.add_argument('--run_only', type=str, default='../output/chatgpt/geometry_agents@5.txt')
+    parser.add_argument('--run_only', type=str, default='./output/chatgpt/geometry_agents@5.txt')
     parser.add_argument('--dataset', type=str, choices=[
         'geometry'], default='geometry')
     parser.add_argument('--backbone', type=str,
@@ -386,7 +402,7 @@ if __name__ == '__main__':
     parser.add_argument('--pal_temperature', type=float, default=0.8)
     parser.add_argument('--sc_num', type=int, default=5,
                         help='Self-consistency samples. 1 indicates greedy decoding')
-    parser.add_argument('--output_dir', type=str, default='../output/')
+    parser.add_argument('--output_dir', type=str, default='./output/')
     # TODO: REMOVE
     parser.add_argument(
         '--key', type=str, default='', required=False)
@@ -400,7 +416,7 @@ if __name__ == '__main__':
     pal_temperature = args.pal_temperature
     backbone = args.backbone
     if backbone == 'mm':
-        pre_loaded_model = load_hf_model('fake')
+        pre_loaded_model = load_hf_model('cpu')
     else:
         pre_loaded_model = None
     run_only = args.run_only
@@ -415,7 +431,8 @@ if __name__ == '__main__':
     dt_string = datetime.now().strftime("%m_%d_%H_%M")
 
     if dataset_name == 'geometry':
-        dataset = jsonfolder_load('../dataset/test_geometry')
+        print(os.listdir('.'))
+        dataset = jsonfolder_load('./dataset/test_geometry')
     else:
         raise ValueError('Only for use with Geometry / MATH split!')
 
