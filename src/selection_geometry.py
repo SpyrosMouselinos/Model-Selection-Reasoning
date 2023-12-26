@@ -393,7 +393,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--start', type=int, default=0)
     parser.add_argument('--end', type=int, default=400)
-    parser.add_argument('--run_only', type=str, default='./output/chatgpt/geometry_agents@5.txt')
+    parser.add_argument('--run_only', type=str, default=None)
     parser.add_argument('--dataset', type=str, choices=[
         'geometry'], default='geometry')
     parser.add_argument('--backbone', type=str,
