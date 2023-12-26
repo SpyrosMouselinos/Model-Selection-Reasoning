@@ -161,10 +161,13 @@ def query_cot(data: dict, key: str, cot_temperature: float, sc_num: float, backb
         elif cot_solution is not None and backbone == 'mm':
             return cot_solution
         else:
-            sleep_time = 1
-            time.sleep(sleep_time)
+            if backbone != 'mm':
+                sleep_time = 1
+                time.sleep(sleep_time)
+            else:
+                return None
 
-        if time.time() - start_time > 60:
+        if backbone != 'mm' and time.time() - start_time > 60:
             return None
 
 
@@ -210,10 +213,13 @@ def query_pal(data: dict, key: str, pal_temperature: float, backbone: str, memor
                                 for choice in pal_solution['choices']])
             return completions
         else:
-            sleep_time = 1
-            time.sleep(sleep_time)
+            if backbone != 'mm':
+                sleep_time = 1
+                time.sleep(sleep_time)
+            else:
+                return None
 
-        if time.time() - start_time > 60:
+        if backbone != 'mm' and time.time() - start_time > 60:
             return None
 
 
@@ -255,10 +261,13 @@ def query_validator(data, key, backbone, proposal, pre_loaded_model=None):
         elif validator_opinion is not None and backbone == 'mm':
             return validator_opinion
         else:
-            sleep_time = 1
-            time.sleep(sleep_time)
+            if backbone != 'mm':
+                sleep_time = 1
+                time.sleep(sleep_time)
+            else:
+                return None
 
-        if time.time() - start_time > 60:
+        if backbone != 'mm' and time.time() - start_time > 60:
             return None
 
 
@@ -500,17 +509,18 @@ if __name__ == '__main__':
                 progress_bar.update(1)
                 break
             else:
-                sleep_time = 1
-                time.sleep(sleep_time)
+                if backbone != 'mm':
+                    sleep_time = 1
+                    time.sleep(sleep_time)
 
-            if time.time() - start_time > wait_time:
+            if backbone != 'mm' and (time.time() - start_time > wait_time):
                 print('Time out')
                 print('Current Task: ', i)
                 unfinished_tasks.append(task)
                 break
-
-        sleep_time = 1
-        time.sleep(sleep_time)
+        if backbone != 'mm':
+            sleep_time = 1
+            time.sleep(sleep_time)
 
     end_time_0 = time.time()
     print('Finish at time: ', time.strftime(
