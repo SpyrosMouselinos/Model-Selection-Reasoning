@@ -54,8 +54,8 @@ def simple_user_assistant_split(prompt: str):
 def simple_user_assistant_merge(prompt: str):
     message = []
     spliced = prompt.split(split_symbol)
-    # for i in range(6):
-    #     message.append(spliced[i])
+    for i in range(4):
+        message.append(spliced[i])
     message.append(spliced[- 1])
     message = '\n'.join(message)
     return message
