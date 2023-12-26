@@ -322,9 +322,9 @@ def extract_geom(ans_string: str):
 
 def load_hf_model(device='fake'):
     # model_path = "akjindal53244/Arithmo-Mistral-7B"
-    # model_path = "meta-math/MetaMath-Mistral-7B"
-    model_path = "microsoft/phi-1_5"
-    run_model_on_gpu = device == 'gpu'
+    model_path = "meta-math/MetaMath-Mistral-7B"
+    #model_path = "microsoft/phi-1_5"
+    run_model_on_gpu = device == 'cuda'
     use_4bit = True
     bnb_4bit_compute_dtype = "float16"
     bnb_4bit_quant_type = "nf4"

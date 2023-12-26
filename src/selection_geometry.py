@@ -141,6 +141,7 @@ def query_cot(data: dict, key: str, cot_temperature: float, sc_num: float, backb
     completions = []
     while True:
         try:
+            print("Attempting COT...\n")
             cot_solution = llm_inference(
                 key=key,
                 model=model,
@@ -196,6 +197,7 @@ def query_pal(data: dict, key: str, pal_temperature: float, backbone: str, memor
     completions = []
     while True:
         try:
+            print("Attempting PAL...\n")
             pal_solution = llm_inference(
                 key=key,
                 model=model,
@@ -241,6 +243,7 @@ def query_validator(data, key, backbone, proposal, pre_loaded_model=None):
     completions = []
     while True:
         try:
+            print("Attempting VAL...\n")
             validator_opinion = llm_inference(
                 key=key,
                 model=model,
