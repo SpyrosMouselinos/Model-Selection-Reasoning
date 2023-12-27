@@ -54,7 +54,7 @@ def simple_user_assistant_split(prompt: str):
 def simple_user_assistant_merge(prompt: str):
     message = []
     spliced = prompt.split(split_symbol)
-    for i in range(4):
+    for i in range(3):
         message.append(spliced[i])
     message.append(spliced[- 1])
     message = '\n'.join(message)
@@ -145,8 +145,8 @@ def query_cot(data: dict, key: str, cot_temperature: float, sc_num: float, backb
             cot_solution = llm_inference(
                 key=key,
                 model=model,
-                max_tokens=500,
-                stop='\n\n\n',
+                max_tokens=400,
+                stop=['\n\n\n', '\n\n', '|endoftext|'],
                 messages=query_message,
                 temperature=cot_temperature,
                 top_p=1.0,
@@ -201,8 +201,8 @@ def query_pal(data: dict, key: str, pal_temperature: float, backbone: str, memor
             pal_solution = llm_inference(
                 key=key,
                 model=model,
-                max_tokens=300,
-                stop='\n\n\n',
+                max_tokens=400,
+                stop=['\n\n\n', '\n\n', '|endoftext|'],
                 messages=query_message,
                 temperature=pal_temperature,
                 top_p=1.0,
@@ -248,7 +248,7 @@ def query_validator(data, key, backbone, proposal, pre_loaded_model=None):
                 key=key,
                 model=model,
                 max_tokens=500,
-                stop='\n\n\n',
+                stop=['\n\n\n', '\n\n', '|endoftext|'],
                 messages=query_message,
                 temperature=0.8,
                 top_p=0.95,
@@ -291,7 +291,7 @@ def query_dialogue(data: dict,
                              pre_loaded_model=pre_loaded_model,
                              memory=memory)
     if cot_solution is None:
-        print('Time out')
+        print('Time out in COT')
         return None
     else:
         for i in range(len(cot_solution)):
@@ -315,7 +315,7 @@ def query_dialogue(data: dict,
         cot_validation = query_validator(data=data, key=key, backbone=backbone, proposal=final_solution,
                                          pre_loaded_model=pre_loaded_model)
         if cot_validation is None:
-            print('Time out')
+            print('Time out in Validator')
             return ''
         else:
             for i in range(len(cot_validation)):
@@ -387,7 +387,6 @@ def query_agents_memory(data: dict,
                                     pre_loaded_model=pre_loaded_model,
                                     memory=memory)
     if agent_solution is None:
-        print('Time out')
         return None
     ####################
     # === dump data ===
@@ -412,8 +411,7 @@ if __name__ == '__main__':
                         choices=['mm', 'chatgpt', 'gpt4'], default='mm')
     parser.add_argument('--cot_temperature', type=float, default=0.5)
     parser.add_argument('--pal_temperature', type=float, default=0.8)
-    parser.add_argument('--sc_num', type=int, default=5,
-                        help='Self-consistency samples. 1 indicates greedy decoding')
+    parser.add_argument('--sc_num', type=int, default=5)
     parser.add_argument('--output_dir', type=str, default='./output/')
     # TODO: REMOVE
     parser.add_argument(
@@ -428,7 +426,7 @@ if __name__ == '__main__':
     pal_temperature = args.pal_temperature
     backbone = args.backbone
     if backbone == 'mm':
-        pre_loaded_model = load_hf_model('gpu')
+        pre_loaded_model = load_hf_model('fake')
     else:
         pre_loaded_model = None
     run_only = args.run_only

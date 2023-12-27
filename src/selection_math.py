@@ -9,6 +9,8 @@ from tqdm import tqdm
 from typing import Union
 from prompts import math_prompt
 from collections import OrderedDict, Counter
+
+from src.selection_geometry import simple_user_assistant_merge
 from tool import *
 
 
@@ -194,11 +196,15 @@ def query_cot(data: dict, key: str, cot_temperature: float, sc_num: float, backb
     Returns:
         completions: a list containing the CoT solution
     '''
-    query_message = get_cot_prompt(data, backbone=backbone, memory=memory)
+
     if backbone == 'gpt4':
         model_name = 'gpt-4'
+        query_message = get_cot_prompt(data, backbone=backbone, memory=memory)
     elif backbone == 'chatgpt':
         model_name = 'gpt-3.5-turbo'
+        query_message = get_cot_prompt(data, backbone=backbone, memory=memory)
+    elif backbone == 'mm':
+        query_message = get_cot_prompt(data, backbone=backbone, memory=memory)
 
     start_time = time.time()
     completions = []

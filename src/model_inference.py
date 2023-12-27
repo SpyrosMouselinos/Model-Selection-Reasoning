@@ -41,7 +41,7 @@ def huggingface_inference(model, max_tokens, messages, temperature, top_p, n, st
     assert isinstance(model, tuple)
     llm, tokenizer = model
     inputs = tokenizer(messages, return_tensors="pt")
-    inputs = inputs.to(device='cuda')
+    inputs = inputs.to(device='cpu')
     do_sample = True
     max_new_tokens = max_tokens
     top_p = top_p
