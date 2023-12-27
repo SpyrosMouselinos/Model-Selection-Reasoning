@@ -354,6 +354,7 @@ def load_hf_model(device='fake'):
                 device_map=device_map,
                 trust_remote_code=True
             )
+            model = model.eval()
         else:
             device_map = {"": "cpu"}
             model = AutoModelForCausalLM.from_pretrained(

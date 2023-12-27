@@ -54,8 +54,8 @@ def simple_user_assistant_split(prompt: str):
 def simple_user_assistant_merge(prompt: str):
     message = []
     spliced = prompt.split(split_symbol)
-    for i in range(3):
-        message.append(spliced[i])
+    message.append(spliced[0])
+    message.append('Math problem:\nIn right triangle ABC, \cos{C}=\frac{9\sqrt{130}}{130}.Find AC.\nAnswer: We have \frac{AC}{BC}=\frac{AC}{\sqrt{130}}=\frac{9\sqrt{130}}{130}.\nThis means that AC=\frac{9\sqrt{130}}{130}\cdot\sqrt{130}=\frac{9\cdot\sqrt{130}\cdot\sqrt{130}}{130}=\boxed{9}.')
     message.append(spliced[- 1])
     message = '\n'.join(message)
     return message
@@ -403,7 +403,7 @@ def query_agents_memory(data: dict,
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--start', type=int, default=0)
-    parser.add_argument('--end', type=int, default=400)
+    parser.add_argument('--end', type=int, default=-1)
     parser.add_argument('--run_only', type=str, default=None)
     parser.add_argument('--dataset', type=str, choices=[
         'geometry'], default='geometry')
@@ -489,6 +489,9 @@ if __name__ == '__main__':
         if i not in run_only_list:
             continue
         task = tasks[i]
+        if backbone == 'mm':
+            if '[asy]' in task['prompt'].split('XXXXX')[-1]:
+                continue
         wait_time = min(sc_num * 300, 2000)
         start_time = time.time()
         while True:
@@ -498,7 +501,7 @@ if __name__ == '__main__':
                                       sc_num=sc_num,
                                       backbone=backbone,
                                       memory=memory,
-                                      use_validators=True,
+                                      use_validators=False,
                                       pre_loaded_model=pre_loaded_model)
             # memory.append(new_memory_entry)
             # except Exception as e:

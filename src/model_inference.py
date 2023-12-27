@@ -48,10 +48,10 @@ def huggingface_inference(model, max_tokens, messages, temperature, top_p, n, st
     temperature = temperature
     num_return_sequences = n
     # Define the tokens you want to stop at
-    stop_tokens = ["\n\n\n", "Example", "Math Problem", "Problem"]
+    stop_tokens = ["\n\n", "\n\n\n", "Example", "Math Problem", "Problem"]
     with torch.no_grad():
         outputs = llm.generate(**inputs,
-                               max_new_tokens=max_new_tokens,
+                               max_new_tokens=200,
                                do_sample=do_sample,
                                top_p=top_p,
                                temperature=temperature,
